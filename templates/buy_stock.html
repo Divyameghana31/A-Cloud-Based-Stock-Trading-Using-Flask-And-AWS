@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+          <meta charset="UTF-8">
+          <title>Buy Stock</title>
+          <!-- In your HTML templates -->
+          <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+          <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</head>
+
+<body>
+          <header>
+                    <h1>Buy Stocks</h1>
+                    <nav>
+                              <a href="{{ url_for('dashboard_trader') }}">Back to Dashboard</a>
+                    </nav>
+          </header>
+
+          <main>
+                    <form>
+                              <label for="stock-symbol">Stock Symbol:</label>
+                              <input type="text" id="stock-symbol" placeholder="AAPL, TSLA, etc." required>
+
+                              <label for="quantity">Quantity:</label>
+                              <input type="number" id="quantity" min="1" required>
+
+                              <button type="submit">Buy</button>
+                    </form>
+
+                    <h3>Available Stocks:</h3>
+                    <table>
+                              <tr>
+                                        <th>Symbol</th>
+                                        <th>Name</th>
+                                        <th>Price</th>
+                              </tr>
+                              <!-- Dynamic stock data would go here -->
+                    </table>
+          </main>
+</body>
+
+</html>

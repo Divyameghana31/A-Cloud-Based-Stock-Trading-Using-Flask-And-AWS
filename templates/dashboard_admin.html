@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+          <meta charset="UTF-8">
+          <title>Admin Dashboard</title>
+          <!-- In your HTML templates -->
+          <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}"> 
+          <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</head>
+
+<body>
+          <header>
+                    <h1>Admin Panel</h1>
+                    <nav>
+                              <a href="{{ url_for('logout') }}">Logout</a>
+                    </nav>
+          </header>
+
+          <main>
+                    <div class="controls">
+                              <button>Edit User Permissions</button>
+                              <button>Update Stock Data</button>
+                    </div>
+                    <h3>Recent Transactions</h3>
+                    <table>
+                              <tr>
+                                        <th>User</th>
+                                        <th>Stock</th>
+                                        <th>Quantity</th>
+                                        <th>Price</th>
+                              </tr>
+                              <!-- Dynamic data would go here -->
+                    </table>
+          </main>
+</body>
+
+</html>

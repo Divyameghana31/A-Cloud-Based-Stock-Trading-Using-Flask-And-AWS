@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+          <meta charset="UTF-8">
+          <title>Sell Stock</title>
+          <link rel="stylesheet" href="{{ url_for('static', filename='css/trade.css') }}">
+          <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+          <link rel="script" href="{{ url_for('static', filename='js/script.js') }}">
+</head>
+
+<body>
+          <header>
+                    <h1>Sell Stocks</h1>
+                    <nav>
+                              <a href="{{ url_for('dashboard_trader') }}">Back to Dashboard</a>
+                    </nav>
+          </header>
+
+          <main>
+                    <form>
+                              <label for="stock-symbol">Stock Symbol:</label>
+                              <select id="stock-symbol" required>
+                                        <!-- Dynamic options from user's holdings -->
+                              </select>
+
+                              <label for="quantity">Quantity:</label>
+                              <input type="number" id="quantity" min="1" required>
+
+                              <button type="submit">Sell</button>
+                    </form>
+          </main>
+</body>
+
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<title>Sign Up</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+</head>
+
+<body>
+
+<div class="auth-container">
+
+<h2>Create Your Account</h2>
+
+<form method="POST">
+
+<input type="text" name="username" placeholder="Username" required>
+
+<input type="email" name="email" placeholder="Email" required>
+
+<input type="password" name="password" placeholder="Password" required>
+
+<input type="password" name="confirm_password" placeholder="Confirm Password" required>
+
+<!-- ADD ROLE FIELD -->
+<select name="role" required>
+<option value="user">User</option>
+<option value="admin">Admin</option>
+</select>
+
+<button type="submit">Sign Up</button>
+
+</form>
+
+<p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+
+</div>
+
+</body>
+</html>

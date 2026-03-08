@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+          <meta charset="UTF-8">
+          <title>Service Details 1</title>
+          <link rel="stylesheet" href="{{ url_for('static', filename='css/service.css') }}">
+          <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+          <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</head>
+
+<body>
+          <header>
+                    <h1>Real-Time Market Data</h1>
+                    <nav>
+                              <a href="{{ url_for('index') }}">Home</a>
+                    </nav>
+          </header>
+
+          <main>
+                    <p>Access live stock market data and trends.</p>
+                    <img src="{{ url_for('static', filename='img/service1.jpg') }}" alt="Service 1">
+          </main>
+</body>
+
+</html>

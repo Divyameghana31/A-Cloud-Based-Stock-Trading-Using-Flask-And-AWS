@@ -1,0 +1,41 @@
+.dashboard-container {
+          display: grid;
+          grid-template-columns: 1fr 2fr;
+          gap: 2rem;
+}
+
+.sidebar {
+          background: var(--light);
+          padding: 1rem;
+          border-radius: 8px;
+}
+
+.stats-card {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+}
+
+.stat-card {
+          background: white;
+          padding: 1rem;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          text-align: center;
+}
+
+.stat-value {
+          font-size: 1.5rem;
+          color: var(--primary);
+          margin: 0.5rem 0;
+}
+
+.transactions-table {
+          overflow-x: auto;
+}
+
+.portfolio-summary {
+          background: var(--light);
+          padding: 1rem;
+          border-radius: 8px;
+          margin-top: 1rem;     }

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+          <meta charset="UTF-8">
+          <title>Trader Dashboard</title>
+          <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+          <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</head>
+
+<body>
+          <header>
+                    <h1>{{ user.username }}'s Portfolio</h1>
+                    <nav>
+                              <a href="{{ url_for('buy_stock') }}">Buy</a>
+                              <a href="{{ url_for('sell_stock') }}">Sell</a>
+                              <a href="{{ url_for('logout') }}">Logout</a>
+                    </nav>
+          </header>
+
+          <main>
+                    <div class="portfolio">
+                              <h3>Available Funds: ${{ user.balance }}</h3>
+                              <h3>Holdings:</h3>
+                              <ul>
+                                        <!-- Dynamic stock holdings would go here -->
+                              </ul>
+                    </div>
+          </main>
+</body>
+
+</html>
