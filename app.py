@@ -39,9 +39,16 @@ STOCK_TABLE = 'stocker_stocks'
 TRANSACTION_TABLE = 'stocker_transactions'
 PORTFOLIO_TABLE = 'stocker_portfolio'
 
-# SNS Topic ARNs - Set to None to safely skip notifications if not configured
-USER_ACCOUNT_TOPIC_ARN = None
-TRANSACTION_TOPIC_ARN = None
+# ----------------------------------------------------------
+# SNS Topic ARN - Replace YOUR_ACCOUNT_ID with your 12-digit
+# AWS Account ID (found in AWS Console > top-right corner)
+# Both events use the same 'Stocker' SNS topic
+# Example: arn:aws:sns:us-east-1:123456789012:Stocker
+# ----------------------------------------------------------
+SNS_TOPIC_ARN = 'arn:aws:sns:us-east-1:YOUR_ACCOUNT_ID:Stocker'
+
+USER_ACCOUNT_TOPIC_ARN = SNS_TOPIC_ARN
+TRANSACTION_TOPIC_ARN  = SNS_TOPIC_ARN
 
 # --- Helper Classes & Functions ---
 class DecimalEncoder(json.JSONEncoder):
@@ -56,17 +63,19 @@ def clean_dynamo_response(response):
     return json.loads(json.dumps(response, cls=DecimalEncoder))
 
 def send_notification(topic_arn, subject, message, attributes=None):
-    if not topic_arn:
-        print(f"Warning: Missing SNS topic ARN for notification: {subject}")
+    # Guard: skip if ARN still has placeholder
+    if not topic_arn or 'YOUR_ACCOUNT_ID' in topic_arn:
+        print(f"[SNS] Skipped — ARN not configured. Subject: {subject}")
         return False
     try:
         kwargs = {'TopicArn': topic_arn, 'Subject': subject, 'Message': message}
         if attributes:
             kwargs['MessageAttributes'] = attributes
         sns.publish(**kwargs)
+        print(f"[SNS] Notification sent: {subject}")
         return True
     except Exception as e:
-        print(f"SNS notification failed: {str(e)}")
+        print(f"[SNS] Notification failed: {str(e)}")
         return False
 
 # --- Data Access Functions ---
@@ -119,9 +128,9 @@ def update_portfolio(user_id, stock_id, quantity, average_price):
         quantity = Decimal(str(quantity))
     if not isinstance(average_price, Decimal):
         average_price = Decimal(str(average_price))
-    
+
     existing = get_portfolio_item(user_id, stock_id)
-    
+
     if existing and quantity > 0:
         table.update_item(
             Key={'user_id': user_id, 'stock_id': stock_id},
@@ -224,8 +233,10 @@ def signup():
             USER_ACCOUNT_TOPIC_ARN,
             'New User Registration',
             f"New user registered: {username} ({email}) as {role}",
-            {'event_type': {'DataType': 'String','StringValue':'ACCOUNT_CREATION'},
-             'user_role': {'DataType':'String','StringValue':role}}
+            {
+                'event_type': {'DataType': 'String', 'StringValue': 'ACCOUNT_CREATION'},
+                'user_role':  {'DataType': 'String', 'StringValue': role}
+            }
         )
         flash(f"Account created for {username}", 'success')
         return redirect(url_for('login'))
@@ -234,23 +245,25 @@ def signup():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email')
+        email    = request.form.get('email')
         password = request.form.get('password')
-        role = request.form.get('role')
-        user = get_user_by_email(email)
+        role     = request.form.get('role')
+        user     = get_user_by_email(email)
         if user and user['password'] == password and user['role'] == role:
-            session['email'] = user['email']
-            session['role'] = user['role']
+            session['email']   = user['email']
+            session['role']    = user['role']
             session['user_id'] = user['id']
             send_notification(
                 USER_ACCOUNT_TOPIC_ARN,
                 'User Login',
                 f"User logged in: {user['username']} ({email}) as {role}",
-                {'event_type':{'DataType':'String','StringValue':'LOGIN'},
-                 'user_role':{'DataType':'String','StringValue':role}}
+                {
+                    'event_type': {'DataType': 'String', 'StringValue': 'LOGIN'},
+                    'user_role':  {'DataType': 'String', 'StringValue': role}
+                }
             )
             flash('Login successful', 'success')
-            return redirect(url_for('dashboard_admin' if role=='admin' else 'dashboard_trader'))
+            return redirect(url_for('dashboard_admin' if role == 'admin' else 'dashboard_trader'))
         else:
             flash('Invalid credentials or role mismatch', 'danger')
             return redirect(url_for('login'))
@@ -283,7 +296,9 @@ def service01():
     traders = get_traders()
     for trader in traders:
         portfolio = get_user_portfolio(trader['id'])
-        trader['total_portfolio_value'] = sum(float(p['quantity'])*float(p['stock']['price']) for p in portfolio)
+        trader['total_portfolio_value'] = sum(
+            float(p['quantity']) * float(p['stock']['price']) for p in portfolio
+        )
     return render_template('service-details-1.html', traders=traders)
 
 @app.route('/service02')
@@ -305,7 +320,10 @@ def service03():
         flash("Admins only", "danger")
         return redirect(url_for('login'))
     portfolios = get_portfolios()
-    total_value = sum(float(p['quantity'])*float(p['stock']['price']) for p in portfolios if 'stock' in p)
+    total_value = sum(
+        float(p['quantity']) * float(p['stock']['price'])
+        for p in portfolios if 'stock' in p
+    )
     return render_template('service-details-3.html', portfolios=portfolios, total_portfolio_value=total_value)
 
 # --- Trader Services ---
@@ -323,7 +341,7 @@ def buy_stock(stock_id):
     if 'role' not in session or session['role'] != 'trader':
         flash("Traders only", "danger")
         return redirect(url_for('login'))
-    user = get_user_by_email(session['email'])
+    user  = get_user_by_email(session['email'])
     stock = get_stock_by_id(stock_id)
     if not stock:
         flash("Stock not found", "danger")
@@ -333,15 +351,14 @@ def buy_stock(stock_id):
         if quantity <= 0:
             flash("Enter a valid quantity", "danger")
             return redirect(url_for('buy_stock', stock_id=stock_id))
-        # Create transaction
         create_transaction(user['id'], stock_id, "buy", quantity, float(stock['price']))
         portfolio_entry = get_portfolio_item(user['id'], stock_id)
         if portfolio_entry:
-            current_qty = Decimal(str(portfolio_entry['quantity']))
-            current_avg = Decimal(str(portfolio_entry['average_price']))
-            stock_price = Decimal(str(stock['price']))
-            total_qty = current_qty + Decimal(str(quantity))
-            avg_price = (current_qty*current_avg + Decimal(str(quantity))*stock_price)/total_qty
+            current_qty  = Decimal(str(portfolio_entry['quantity']))
+            current_avg  = Decimal(str(portfolio_entry['average_price']))
+            stock_price  = Decimal(str(stock['price']))
+            total_qty    = current_qty + Decimal(str(quantity))
+            avg_price    = (current_qty * current_avg + Decimal(str(quantity)) * stock_price) / total_qty
             update_portfolio(user['id'], stock_id, total_qty, avg_price)
         else:
             update_portfolio(user['id'], stock_id, Decimal(str(quantity)), Decimal(str(stock['price'])))
@@ -349,7 +366,7 @@ def buy_stock(stock_id):
             TRANSACTION_TOPIC_ARN,
             f"Stock Purchase: {stock['symbol']}",
             f"{user['username']} purchased {quantity} shares of {stock['symbol']} at {stock['price']}",
-            {'event_type': {'DataType':'String','StringValue':'BUY'}}
+            {'event_type': {'DataType': 'String', 'StringValue': 'BUY'}}
         )
         flash(f"Purchased {quantity} shares of {stock['symbol']}", 'success')
         return redirect(url_for('service05'))
@@ -360,21 +377,27 @@ def sell_stock(stock_id):
     if 'role' not in session or session['role'] != 'trader':
         flash("Traders only", "danger")
         return redirect(url_for('login'))
-    user = get_user_by_email(session['email'])
-    stock = get_stock_by_id(stock_id)
+    user            = get_user_by_email(session['email'])
+    stock           = get_stock_by_id(stock_id)
     portfolio_entry = get_portfolio_item(user['id'], stock_id)
     if not stock or not portfolio_entry:
         flash("Stock not found or you do not own shares", "danger")
         return redirect(url_for('service04'))
     if request.method == 'POST':
-        quantity = int(request.form.get("quantity",0))
-        if quantity<=0 or quantity>portfolio_entry['quantity']:
+        quantity = int(request.form.get("quantity", 0))
+        if quantity <= 0 or quantity > portfolio_entry['quantity']:
             flash("Invalid quantity", "danger")
             return redirect(url_for('sell_stock', stock_id=stock_id))
         create_transaction(user['id'], stock_id, "sell", quantity, float(stock['price']))
         remaining_qty = portfolio_entry['quantity'] - quantity
-        avg_price = float(portfolio_entry['average_price']) if remaining_qty>0 else 0
+        avg_price     = float(portfolio_entry['average_price']) if remaining_qty > 0 else 0
         update_portfolio(user['id'], stock_id, remaining_qty, avg_price)
+        send_notification(
+            TRANSACTION_TOPIC_ARN,
+            f"Stock Sale: {stock['symbol']}",
+            f"{user['username']} sold {quantity} shares of {stock['symbol']} at {stock['price']}",
+            {'event_type': {'DataType': 'String', 'StringValue': 'SELL'}}
+        )
         flash(f"Sold {quantity} shares of {stock['symbol']}", "success")
         return redirect(url_for('service05'))
     return render_template('sell_stock.html', user=user, stock=stock, portfolio_entry=portfolio_entry)
@@ -384,16 +407,17 @@ def service05():
     if 'role' not in session or session['role'] != 'trader':
         flash("Traders only", "danger")
         return redirect(url_for('login'))
-    user = get_user_by_email(session['email'])
-    portfolio = get_user_portfolio(user['id'])
-    total_value = sum(float(p['quantity'])*float(p['stock']['price']) for p in portfolio if 'stock' in p)
+    user         = get_user_by_email(session['email'])
+    portfolio    = get_user_portfolio(user['id'])
+    total_value  = sum(float(p['quantity']) * float(p['stock']['price']) for p in portfolio if 'stock' in p)
     transactions = get_user_transactions(user['id'])
     for t in transactions:
         try:
             t['transaction_date'] = datetime.fromisoformat(t['transaction_date'])
         except:
             t['transaction_date'] = None
-    return render_template('service-details-5.html', user=user, portfolio=portfolio, total_value=total_value, transactions=transactions)
+    return render_template('service-details-5.html', user=user, portfolio=portfolio,
+                           total_value=total_value, transactions=transactions)
 
 @app.route('/logout')
 def logout():
